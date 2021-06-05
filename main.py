@@ -30,6 +30,7 @@ if __name__=='__main__':
         # start training
         train(model, train_dataloader, max_epoch, device)
     elif mode == 'test':
+        # TODO
         pass
     else:
         raise ValueError(f'Unknown mode: {mode}')
