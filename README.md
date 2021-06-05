@@ -5,6 +5,7 @@ pytorch>=1.5, imageio, PIL
 ## Usage
 ### Train
 python main.py --mode train
+optional (visualize training process in TensorBoard): tensorbooard --logdir logs/
 ### Test
 python main.py --mode test
 ### Optional config
