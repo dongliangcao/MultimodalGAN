@@ -75,7 +75,7 @@ def train(model, train_dataloader, max_epoch, device='cuda', verbose=True, print
             # caculate discriminator loss
             # discriminator should predicts all patches of real images as real (1)
             guess_A = model.D_A(real_images_A)
-            ones = torch.ones_like(guess_A) * 0.95 # Use 0.95 to avoid training the discriminators to zero loss
+            ones = torch.ones_like(guess_A) * 0.9 # Use 0.9 to avoid training the discriminators to zero loss
             DA_loss_real = loss_D(guess_A, ones)
             guess_B = model.D_B(real_images_B)
             DB_loss_real = loss_D(guess_B, ones)

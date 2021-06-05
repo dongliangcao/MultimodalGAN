@@ -62,22 +62,20 @@ class CycleGAN(nn.Module):
     def generator(self, real_A, real_B, mask):
         synthetic_B, attn_synthetic_B = self.G_A2B(real_A, mask)
         synthetic_A, attn_synthetic_A = self.G_B2A(real_B, mask)
-        # Do not uptda ediscriminator weights during generator training
+        # Do not update discriminator weights during generator training
         with torch.no_grad():
             dA_guess_synthetic = self.D_A(synthetic_A)
             dB_guess_synthetic = self.D_B(synthetic_B)
         reconstructed_B, attn_rec_B = self.G_A2B(synthetic_A, mask)
         reconstructed_A, attn_rec_A = self.G_B2A(synthetic_B, mask)
         return reconstructed_A, reconstructed_B, attn_rec_B, dA_guess_synthetic, dB_guess_synthetic
-          
-
+    
 class Generator(nn.Module):
     def __init__(self, in_channels):
         super().__init__()
         # layer 1
         self.layer1 = nn.Sequential(
-            nn.ReflectionPad2d(padding=3),
-            nn.Conv2d(2, 48, kernel_size=7, stride=1),
+            nn.Conv2d(2, 48, kernel_size=7, stride=1, padding=3, padding_mode='reflect'),
             nn.InstanceNorm2d(48, affine=True, track_running_stats=True),
             nn.ReLU(inplace=True)
         )
@@ -95,8 +93,7 @@ class Generator(nn.Module):
         # layer 14
         self.layer14 = nn.Sequential(
             deconvrelu(72, 48),
-            nn.ReflectionPad2d(3),
-            nn.Conv2d(48, in_channels, kernel_size=7),
+            nn.Conv2d(48, in_channels, kernel_size=7, padding=3, padding_mode='reflect'),
             nn.Tanh()
         )
 
@@ -141,8 +138,3 @@ class ResidualBlock(nn.Module):
         y = self.relu1(self.norm1(self.conv1(x)))
         y = self.relu2(self.norm2(self.conv2(y)))
         return x + y
-
-if __name__=='__main__':
-    from torchsummary import summary
-    GAN = CycleGAN(2).cuda()
-    summary(GAN, input_data=((2, 100, 100), (2, 100, 100), (1, 100, 100)))

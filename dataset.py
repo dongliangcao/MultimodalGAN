@@ -11,7 +11,8 @@ import torch.utils.data as data
 import imageio
 
 def read_image(filename):
-    return imageio.imread(filename).astype(np.float32) / np.float32(255.0)
+    # rescale image from [0, 255] -> [-1, 1]
+    return imageio.imread(filename).astype(np.float32) / np.float32(127.5) - 1.0
 
 def read_mask(filename):
     return imageio.imread(filename)
