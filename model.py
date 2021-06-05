@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import torch.nn.init as init
 import torch.nn.functional as F
 
 def convleakyrelu(in_channels, out_channels, kernel_size=3, stride=1, padding=1, dilation=1, groups=1, bias=True, normalization=True):
@@ -51,8 +52,14 @@ class CycleGAN(nn.Module):
         # generator
         self.G_A2B = Generator(in_channels)
         self.G_B2A = Generator(in_channels)
-
-    def forward(self, real_A, real_B, mask):
+        # weight initilization
+        for m in self.modules():
+            if isinstance(m, (nn.Conv2d, nn.ConvTranspose2d)):
+                init.kaiming_normal_(m.weight)
+                if m.bias is not None:
+                    init.constant_(m.bias, 0.0)
+    
+    def generator(self, real_A, real_B, mask):
         synthetic_B, attn_synthetic_B = self.G_A2B(real_A, mask)
         synthetic_A, attn_synthetic_A = self.G_B2A(real_B, mask)
         # Do not uptda ediscriminator weights during generator training

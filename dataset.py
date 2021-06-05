@@ -5,6 +5,7 @@ import numpy as np
 from glob import glob
 
 import torch
+import torch.nn.functional as F
 import torch.utils.data as data
 
 import imageio
@@ -22,6 +23,15 @@ def numpy2torch(array):
     else:
         array = np.expand_dims(array, axis=0)
     return torch.from_numpy(array.copy()).float()
+
+def resize(img, output_size):
+    """
+    resize img/flow/occ to ensure the size is divisible by 64
+    """
+    # expand one dimension as dimension for batch size
+    img = img.unsqueeze(0)
+    img = F.interpolate(img, size=output_size, mode='bilinear', align_corners=True)
+    return img.squeeze(0)
 
 class MRDataset(data.Dataset):
     """
@@ -68,13 +78,12 @@ class MRDataset(data.Dataset):
             mask = read_mask(self.mask_filenames[index])
 
             T1, T2, FLAIR, DIR, mask = numpy2torch(T1), numpy2torch(T2), numpy2torch(FLAIR), numpy2torch(DIR), numpy2torch(mask)
-            return {
-                'T1': T1,
-                'T2': T2,
-                'FLAIR': FLAIR,
-                'DIR': DIR,
-                'mask': mask
-            }
+            real_A = torch.cat((T1, T2), dim=0)
+            real_B = torch.cat((FLAIR, DIR), dim=0)
+            real_A = resize(real_A, (50, 50))
+            real_B = resize(real_B, (50, 50))
+            mask = resize(mask, (50, 50))
+            return real_A, real_B, mask
 
 class MRTrainDataset(MRDataset):
     def __init__(self, root):
