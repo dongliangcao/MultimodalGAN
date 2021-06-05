@@ -81,9 +81,6 @@ class MRDataset(data.Dataset):
             T1, T2, FLAIR, DIR, mask = numpy2torch(T1), numpy2torch(T2), numpy2torch(FLAIR), numpy2torch(DIR), numpy2torch(mask)
             real_A = torch.cat((T1, T2), dim=0)
             real_B = torch.cat((FLAIR, DIR), dim=0)
-            real_A = resize(real_A, (50, 50))
-            real_B = resize(real_B, (50, 50))
-            mask = resize(mask, (50, 50))
             return real_A, real_B, mask
 
 class MRTrainDataset(MRDataset):
