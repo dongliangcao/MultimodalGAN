@@ -1,47 +1,42 @@
-import random
 import torch
+import torch.nn.functional as F
 
-class ImagePool():
-    def __init__(self, pool_size):
-        self.pool_size = pool_size
-        if self.pool_size > 0:
-            self.num_imgs = 0
-            self.images = []
+import numpy as np
+import imageio
+from PIL import Image
 
-    def query(self, images):
-        if self.pool_size == 0:
-            return images
-        return_images = []
-        for image in images:
-            if len(image.shape) == 3:
-                image = image.unsqueeze(0)
+def read_image(filename):
+    # rescale image from [0, 255] -> [-1, 1]
+    return imageio.imread(filename).astype(np.float32) / np.float32(127.5) - 1.0
 
-            if self.num_imgs < self.pool_size:  # fill up the image pool
-                self.num_imgs = self.num_imgs + 1
-                if len(self.images) == 0:
-                    self.images = image
-                else:
-                    self.images = torch.vstack((self.images, image))
+def read_mask(filename):
+    return imageio.imread(filename)
 
-                if len(return_images) == 0:
-                    return_images = image
-                else:
-                    return_images = torch.vstack((return_images, image))
-            else:  # 50% chance that we replace an old synthetic image
-                p = random.uniform(0, 1)
-                if p > 0.5:
-                    random_id = random.randint(0, self.pool_size - 1)
-                    tmp = self.images[random_id, :, :, :]
-                    tmp = tmp.unsqueeze(0)
-                    self.images[random_id, :, :, :] = image[0, :, :, :]
-                    if len(return_images) == 0:
-                        return_images = tmp
-                    else:
-                        return_images = torch.vstack((return_images, tmp))
-                else:
-                    if len(return_images) == 0:
-                        return_images = image
-                    else:
-                        return_images = torch.vstack((return_images, image))
+def numpy2torch(array):
+    assert isinstance(array, np.ndarray), f'Unknown suppoerted type: {type(array)}'
+    if array.ndim == 3:
+        array = np.transpose(array, (2, 0, 1))
+    else:
+        array = np.expand_dims(array, axis=0)
+    return torch.from_numpy(array.copy()).float()
 
-        return return_images
+def torch2numpy(tensor):
+    assert isinstance(tensor, torch.Tensor), f'Unknown suppoerted type: {type(tensor)}'
+    if tensor.ndim == 3:
+        array = tensor.permute(1, 2, 0).detach().cpu().numpy()
+    else:
+        array = tensor.unsqueeze(0).permute(1, 2, 0).detach().cpu().numpy()
+    return array
+
+def resize(img, size):
+    img = img.unsqueeze(0)
+    img = F.interpolate(img, size=size, mode='bilinear', align_corners=True).squeeze(0)
+    return img
+
+def save_img(array, filename):
+    if array.dtype == np.float32 or array.dtype == np.float64:
+        array = (array + 1.0) / 2.0 # rescale [-1, 1] -> [0, 1]
+        array = (array * 255).astype(np.uint8) # rescale [0, 1] -> [0, 255]
+        Image.fromarray(array).save(filename)
+    else:
+        Image.fromarray(array).save(filename)

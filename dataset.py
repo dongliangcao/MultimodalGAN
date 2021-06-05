@@ -1,38 +1,9 @@
 import os
-
-import numpy as np
-
 from glob import glob
 
-import torch
-import torch.nn.functional as F
 import torch.utils.data as data
 
-import imageio
-
-def read_image(filename):
-    # rescale image from [0, 255] -> [-1, 1]
-    return imageio.imread(filename).astype(np.float32) / np.float32(127.5) - 1.0
-
-def read_mask(filename):
-    return imageio.imread(filename)
-
-def numpy2torch(array):
-    assert(isinstance(array, np.ndarray))
-    if array.ndim == 3:
-        array = np.transpose(array, (2, 0, 1))
-    else:
-        array = np.expand_dims(array, axis=0)
-    return torch.from_numpy(array.copy()).float()
-
-def resize(img, output_size):
-    """
-    resize img/flow/occ to ensure the size is divisible by 64
-    """
-    # expand one dimension as dimension for batch size
-    img = img.unsqueeze(0)
-    img = F.interpolate(img, size=output_size, mode='bilinear', align_corners=True)
-    return img.squeeze(0)
+from utils import *
 
 class MRDataset(data.Dataset):
     """
@@ -81,6 +52,10 @@ class MRDataset(data.Dataset):
             T1, T2, FLAIR, DIR, mask = numpy2torch(T1), numpy2torch(T2), numpy2torch(FLAIR), numpy2torch(DIR), numpy2torch(mask)
             real_A = torch.cat((T1, T2), dim=0)
             real_B = torch.cat((FLAIR, DIR), dim=0)
+            # resize original image
+            # real_A = resize(real_A, (50, 50))
+            # real_B = resize(real_B, (50, 50))
+            # mask = resize(mask, (50, 50))
             return real_A, real_B, mask
 
 class MRTrainDataset(MRDataset):

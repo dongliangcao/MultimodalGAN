@@ -68,7 +68,7 @@ class CycleGAN(nn.Module):
             dB_guess_synthetic = self.D_B(synthetic_B)
         reconstructed_B, attn_rec_B = self.G_A2B(synthetic_A, mask)
         reconstructed_A, attn_rec_A = self.G_B2A(synthetic_B, mask)
-        return reconstructed_A, reconstructed_B, attn_rec_B, dA_guess_synthetic, dB_guess_synthetic
+        return reconstructed_A, reconstructed_B, attn_rec_B, dA_guess_synthetic, dB_guess_synthetic, synthetic_A, synthetic_B
     
 class Generator(nn.Module):
     def __init__(self, in_channels):

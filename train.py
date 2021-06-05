@@ -7,12 +7,18 @@ import torch.nn.functional as F
 
 from torch.utils.tensorboard import SummaryWriter
 
-from utils import ImagePool
-
 DECAY_EPOCH = 101
 DATE_TIME = time.strftime('%Y%m%d-%H%M%S', time.localtime())
 
-def train(model, train_dataloader, max_epoch, device='cuda', verbose=True, print_every_step=1):
+def train(model, train_dataloader, config):
+    # config 
+    max_epoch = config['max_epoch']
+    device = config['device']
+    verbose = config['verbose']
+    print_every_step = config['print_every_step']
+    identity_learning = config['identity_learning']
+    supervised_learning = config['supervised_learning']
+
     # log losses during training
     training_history = OrderedDict()
     logger = SummaryWriter(f'./logs/{DATE_TIME}/')
@@ -22,17 +28,11 @@ def train(model, train_dataloader, max_epoch, device='cuda', verbose=True, print
     gB_d_losses_synthetic = []
     gA_losses_reconstructed = []
     gB_losses_reconstructed = []
-
     GA_losses = []
     GB_losses = []
     reconstruction_losses = []
     D_losses = []
     G_losses = []
-
-    # image pools used to update the discriminators
-    # synthetic_pool_size = 25
-    # synthetic_pool_A = ImagePool(synthetic_pool_size)
-    # synthetic_pool_B = ImagePool(synthetic_pool_size)
 
     # loss criterion
     loss_D = F.mse_loss
@@ -41,7 +41,10 @@ def train(model, train_dataloader, max_epoch, device='cuda', verbose=True, print
     # cyclic loss weight A2B, cyclic loss weight B2A, cyclic loss with attention B2A, loss for discriminator
     loss_G = [F.l1_loss, F.l1_loss, F.l1_loss, F.mse_loss, F.mse_loss]
     loss_weights_G = [10.0, 8.0, 10.0, 1.0, 1.0]
-
+    # supervised loss for paired input and target
+    if supervised_learning:
+        loss_G.extend([F.l1_loss, F.l1_loss])
+        loss_weights_G.extend([10.0, 10.0])
     # identity mapping will be done each time the iteration number is divisable with this number
     identity_mapping_modulus = 10
     loss_I = F.l1_loss
@@ -60,9 +63,11 @@ def train(model, train_dataloader, max_epoch, device='cuda', verbose=True, print
             ], lr=lr_G, betas=(0.5, 0.999))
     # learning rate decay
     decay_D, decay_G = get_lr_linear_decay_rate(lr_D, lr_G, max_epoch, train_dataloader)
+
+    # start training
+    model.train()
     for epoch in range(1, max_epoch+1):
-        step = 1
-        for batch in train_dataloader:
+        for step, batch in enumerate(train_dataloader, 1):
             # prepare data
             real_images_A, real_images_B, real_mask = batch
             real_images_A, real_images_B, real_mask = real_images_A.to(device), real_images_B.to(device), real_mask.to(device)
@@ -97,6 +102,8 @@ def train(model, train_dataloader, max_epoch, device='cuda', verbose=True, print
 
             # ======= Generator training ==========
             target_data = [real_images_A, real_images_B, real_images_B*real_mask, ones, ones]  # Compare reconstructed images to real images
+            if supervised_learning:
+                target_data.extend([real_images_A, real_images_B])
             input_data = model.generator(real_images_A, real_images_B, real_mask)
             G_losses = []
             for input, target, loss, loss_weight in zip(input_data, target_data, loss_G, loss_weights_G):
@@ -107,7 +114,7 @@ def train(model, train_dataloader, max_epoch, device='cuda', verbose=True, print
             gB_d_loss_synthetic = G_losses[4]
 
             # Identity training
-            if step % identity_mapping_modulus == 0:
+            if identity_learning and step % identity_mapping_modulus == 0:
                 identity_images_B, attn_idnt_images_B = model.G_A2B(real_images_B, real_mask)
                 G_A2B_identity_loss = loss_I(identity_images_B, real_images_B) + loss_I(attn_idnt_images_B, real_images_B*real_mask)
                 identity_images_A, attn_idnt_images_A = model.G_B2A(real_images_A, real_mask)
@@ -148,7 +155,7 @@ def train(model, train_dataloader, max_epoch, device='cuda', verbose=True, print
             logger.add_scalars('Reconstruction', {'A': reconstruction_loss_A.item()}, global_step=step)
             logger.add_scalars('Reconstruction', {'B': reconstruction_loss_B.item()}, global_step=step)
             logger.add_scalars('Reconstruction', {'total': reconstruction_loss}, global_step=step)
-            step += 1
+            
             if verbose and step % print_every_step == 0:
                 print('\n')
                 print('Epoch----------------', epoch, '/', max_epoch)
@@ -156,16 +163,26 @@ def train(model, train_dataloader, max_epoch, device='cuda', verbose=True, print
                 print(f'D_loss: {D_loss.item():.4f}')
                 print(f'G_loss: {G_loss.item():.4f}')
                 print(f'reconstruction_loss: {reconstruction_loss:.4f}')
-        
+            # save predicted images [-1, 1] -> [0, 1]
+            if step == len(train_dataloader):
+                real_A, real_B = real_images_A[0], real_images_B[0]
+                synthetic_A, synthetic_B = synthetic_images_A[0], synthetic_images_B[0]
+                for i in range(real_A.shape[0]):
+                    logger.add_image(f'source_gt_{i}', (real_A[i] + 1.0)/2.0, dataformats='HW')
+                    logger.add_image(f'source_syn_{i}', (synthetic_A[i] + 1.0)/2.0, dataformats='HW')
+                for i in range(real_B.shape[0]):
+                    logger.add_image(f'target_gt_{i}', (real_B[i] + 1.0)/2.0, dataformats='HW')
+                    logger.add_image(f'targte_syn_{i}', (synthetic_B[i] + 1.0)/2.0, dataformats='HW')
+
         if epoch > DECAY_EPOCH:
             update_lr(optimizer_D, decay_D)
             update_lr(optimizer_G, decay_G)
 
         if epoch % 10 == 0:
-            save_checkpoint(model.D_A, epoch, 'D_A.pth')
-            save_checkpoint(model.D_B, epoch, 'D_B.pth')
-            save_checkpoint(model.G_A2B, epoch, 'G_A2B.pth')
-            save_checkpoint(model.G_B2A, epoch, 'G_B2A.pth')
+            save_checkpoint(model.D_A, f'D_A_{epoch}.pth')
+            save_checkpoint(model.D_B, f'D_B_{epoch}.pth')
+            save_checkpoint(model.G_A2B, f'G_A2B_{epoch}.pth')
+            save_checkpoint(model.G_B2A, f'G_B2A_{epoch}.pth')
     
         training_history = {
                 'DA_losses': DA_losses,
@@ -180,6 +197,11 @@ def train(model, train_dataloader, max_epoch, device='cuda', verbose=True, print
         writeLossDataToFile(training_history)
     # close logger
     logger.close()
+    # save final state dict
+    save_checkpoint(model.D_A, f'D_A.pth')
+    save_checkpoint(model.D_B, f'D_B.pth')
+    save_checkpoint(model.G_A2B, f'G_A2B.pth')
+    save_checkpoint(model.G_B2A, f'G_B2A.pth')
 
 def get_lr_linear_decay_rate(lr_D, lr_G, max_epoch, data_loader):
     max_nr_images = len(data_loader.dataset)
@@ -198,12 +220,12 @@ def update_lr(optimizer, decay):
     for g in optimizer.param_groups:
                 g['lr'] -= decay
 
-def save_checkpoint(model, epoch, name):
+def save_checkpoint(model, filename):
     path = './checkpoints/'
     if not os.path.isdir(path):
         os.mkdir(path)
 
-    filename = os.path.join(path, f'epoch-{epoch}_'+name)
+    filename = os.path.join(path, filename)
     torch.save(model.state_dict(), filename)
 
 def writeLossDataToFile(history):
