@@ -2,6 +2,7 @@ from train import train
 from model import CycleGAN
 from dataset import MRTrainDataset, MRTestDataset
 
+import os
 import argparse
 
 import torch
@@ -22,6 +23,12 @@ if __name__=='__main__':
 
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     if mode == 'train':
+        # log file
+        if not os.path.isdir('./log/'):
+            os.mkdir('./log/')
+        # checkpoint file
+        if not os.path.isdir('./checkpoints/'):
+            os.mkdir('./checkpoints/')
         # prepare data
         train_dataset = MRTrainDataset(root=root)
         train_dataloader = DataLoader(train_dataset, batch_size=1, shuffle=True, num_workers=1, pin_memory=False)
