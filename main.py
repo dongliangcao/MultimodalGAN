@@ -78,7 +78,3 @@ if __name__=='__main__':
             save_img(synthetic_B_np, os.path.join(synthetic_B_np, f'{i}.png'))
     else:
         raise ValueError(f'Unknown mode: {mode}')
-
-    
-
-    

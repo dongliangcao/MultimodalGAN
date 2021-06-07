@@ -133,3 +133,5 @@ MR/
 
 # logs
 logs/
+checkpoints/
+.idea/
