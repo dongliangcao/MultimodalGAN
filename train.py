@@ -66,6 +66,7 @@ def train(model, train_dataloader, config):
 
     # start training
     model.train()
+    global_step = 0
     for epoch in range(1, max_epoch+1):
         for step, batch in enumerate(train_dataloader, 1):
             # prepare data
@@ -144,17 +145,17 @@ def train(model, train_dataloader, config):
             reconstruction_loss = reconstruction_loss_A.item() + reconstruction_loss_B.item()
             reconstruction_losses.append(reconstruction_loss)
 
-            logger.add_scalars('Discriminator', {'A': DA_loss.item()}, global_step=step)
-            logger.add_scalars('Discriminator', {'B': DB_loss.item()}, global_step=step)
-            logger.add_scalars('Discriminator', {'total': D_loss.item()}, global_step=step)
+            logger.add_scalars('Discriminator', {'A': DA_loss.item()}, global_step=global_step+step)
+            logger.add_scalars('Discriminator', {'B': DB_loss.item()}, global_step=global_step+step)
+            logger.add_scalars('Discriminator', {'total': D_loss.item()}, global_step=global_step+step)
 
-            logger.add_scalars('Generator', {'A': GA_loss}, global_step=step)
-            logger.add_scalars('Generator', {'B': GB_loss}, global_step=step)
-            logger.add_scalars('Generator', {'total': G_loss.item()}, global_step=step)
+            logger.add_scalars('Generator', {'A': GA_loss}, global_step=global_step+step)
+            logger.add_scalars('Generator', {'B': GB_loss}, global_step=global_step+step)
+            logger.add_scalars('Generator', {'total': G_loss.item()}, global_step=global_step+step)
 
-            logger.add_scalars('Reconstruction', {'A': reconstruction_loss_A.item()}, global_step=step)
-            logger.add_scalars('Reconstruction', {'B': reconstruction_loss_B.item()}, global_step=step)
-            logger.add_scalars('Reconstruction', {'total': reconstruction_loss}, global_step=step)
+            logger.add_scalars('Reconstruction', {'A': reconstruction_loss_A.item()}, global_step=global_step+step)
+            logger.add_scalars('Reconstruction', {'B': reconstruction_loss_B.item()}, global_step=global_step+step)
+            logger.add_scalars('Reconstruction', {'total': reconstruction_loss}, global_step=global_step+step)
             
             if verbose and step % print_every_step == 0:
                 print('\n')
@@ -195,6 +196,7 @@ def train(model, train_dataloader, config):
                 'G_losses': G_losses,
                 'reconstruction_losses': reconstruction_losses}
         writeLossDataToFile(training_history)
+        global_step += len(train_dataloader)
     # close logger
     logger.close()
     # save final state dict
