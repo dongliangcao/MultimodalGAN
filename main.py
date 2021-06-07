@@ -16,7 +16,7 @@ if __name__=='__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--data_root', help='data root', default='MR/')
     parser.add_argument('--model_root', help='model root', default='checkpoints/')
-    parser.add_argument('--epochs', help='number of epochs', type=int, default=1)
+    parser.add_argument('--epochs', help='number of epochs', type=int, default=60)
     parser.add_argument('--mode', help='mode: train/test', default='train')
     parser.add_argument('--output_root', help='output root', default='output/')
     args = parser.parse_args()
