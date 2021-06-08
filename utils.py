@@ -25,7 +25,7 @@ def torch2numpy(tensor):
     if tensor.ndim == 3:
         array = tensor.permute(1, 2, 0).detach().cpu().numpy()
     else:
-        array = tensor.unsqueeze(0).permute(1, 2, 0).detach().cpu().numpy()
+        array = tensor.squeeze(0).permute(1, 2, 0).detach().cpu().numpy()
     return array
 
 def resize(img, size):

@@ -135,3 +135,6 @@ MR/
 logs/
 checkpoints/
 .idea/
+
+# output
+output/
