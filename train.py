@@ -169,11 +169,11 @@ def train(model, train_dataloader, config):
                 real_A, real_B = real_images_A[0], real_images_B[0]
                 synthetic_A, synthetic_B = synthetic_images_A[0], synthetic_images_B[0]
                 for i in range(real_A.shape[0]):
-                    logger.add_image(f'source_gt_{i}', (real_A[i] + 1.0)/2.0, dataformats='HW')
-                    logger.add_image(f'source_syn_{i}', (synthetic_A[i] + 1.0)/2.0, dataformats='HW')
+                    logger.add_image(f'source_gt_{i}', (real_A[i] + 1.0)/2.0, dataformats='HW', global_step=epoch)
+                    logger.add_image(f'source_syn_{i}', (synthetic_A[i] + 1.0)/2.0, dataformats='HW', global_step=epoch)
                 for i in range(real_B.shape[0]):
-                    logger.add_image(f'target_gt_{i}', (real_B[i] + 1.0)/2.0, dataformats='HW')
-                    logger.add_image(f'targte_syn_{i}', (synthetic_B[i] + 1.0)/2.0, dataformats='HW')
+                    logger.add_image(f'target_gt_{i}', (real_B[i] + 1.0)/2.0, dataformats='HW', global_step=epoch)
+                    logger.add_image(f'targte_syn_{i}', (synthetic_B[i] + 1.0)/2.0, dataformats='HW', global_step=epoch)
 
         if epoch > DECAY_EPOCH:
             update_lr(optimizer_D, decay_D)
