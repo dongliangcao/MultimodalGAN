@@ -53,22 +53,19 @@ if __name__=='__main__':
         # output dir
         real_dir = os.path.join(output_root, 'real')
         syn_dir = os.path.join(output_root, 'synthetic')
-        if not os.path.isdir(syn_dir):
-            os.makedirs(syn_dir)
-        if not os.path.isdir(real_dir):
-            os.makedirs(real_dir)
         real_FLAIR_dir = os.path.join(real_dir, 'FLAIR')
-        real_DIR_dir = os.path.join(real_dir, 'DIR')
+        real_T2_dir = os.path.join(real_dir, 'T2')
         syn_FLAIR_dir = os.path.join(syn_dir, 'FLAIR')
-        syn_DIR_dir = os.path.join(syn_dir, 'DIR')
+        syn_T2_dir = os.path.join(syn_dir, 'T2')
         os.makedirs(real_FLAIR_dir, exist_ok=True)
-        os.makedirs(real_DIR_dir, exist_ok=True)
+        os.makedirs(real_T2_dir, exist_ok=True)
         os.makedirs(syn_FLAIR_dir, exist_ok=True)
-        os.makedirs(syn_DIR_dir, exist_ok=True)
+        os.makedirs(syn_T2_dir, exist_ok=True)
+
         # use G_A2B to generate synthetic images
         G_A2B = Generator(2).to(device)
         # load pre-trained model
-        G_A2B.load_state_dict(torch.load(os.path.join(model_root, 'G_A2B_30.pth')))
+        G_A2B.load_state_dict(torch.load(os.path.join(model_root, 'G_A2B_60.pth')))
 
         # prepare data
         test_dataset = MRTestDataset(root=data_root)
@@ -82,10 +79,10 @@ if __name__=='__main__':
             with torch.no_grad():
                 synthetic_B, _ = G_A2B(real_A, mask)
             real_B_np, synthetic_B_np = torch2numpy(real_B), torch2numpy(synthetic_B)
-            save_img(real_B_np[:, :, 0], os.path.join(real_FLAIR_dir, f'FLAIR_{i}.png'))
-            save_img(real_B_np[:, :, 1], os.path.join(real_DIR_dir, f'DIR_{i}.png'))
-            save_img(synthetic_B_np[:, :, 0], os.path.join(syn_FLAIR_dir, f'FLAIR_{i}.png'))
-            save_img(synthetic_B_np[:, :, 1], os.path.join(syn_DIR_dir, f'DIR_{i}.png'))
+            save_img(real_B_np[:, :, 1], os.path.join(real_FLAIR_dir, f'FLAIR_{i}.png'))
+            save_img(real_B_np[:, :, 0], os.path.join(real_T2_dir, f'T2_{i}.png'))
+            save_img(synthetic_B_np[:, :, 1], os.path.join(syn_FLAIR_dir, f'FLAIR_{i}.png'))
+            save_img(synthetic_B_np[:, :, 0], os.path.join(syn_T2_dir, f'T2_{i}.png'))
             print(f'save {i}-th image')
     else:
         raise ValueError(f'Unknown mode: {mode}')

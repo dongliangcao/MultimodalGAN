@@ -8,22 +8,6 @@ from PIL import Image
 import numpy as np
 from tqdm import tqdm
 
-def enlarge_crop_data(data, mask):
-    '''
-    :function: to enlarge a volume to make sure the cropping will work
-    :param data: a 3D array
-    :param mask: a 3D array with same size of 'data'
-    :return: enlarged 3D image volume and mask
-    '''
-    img_shape = np.shape(data)
-    img_shape = np.asarray(img_shape)
-    img_shape_new = img_shape + [128, 128, 128] # enlarge it by [128, 128, 128]
-    data_new = np.zeros((img_shape_new), dtype='float32')
-    mask_new = np.zeros((img_shape_new), dtype='float32')
-    data_new[64:-64, 64:-64, 64:-64] = data
-    mask_new[64:-64, 64:-64, 64:-64] = mask
-    return data_new, mask_new
-
 def min_max_norm(array):
     '''
     :function: normalize the intensities to [0, 255]

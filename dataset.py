@@ -1,7 +1,7 @@
 import os
 from glob import glob
-
 import torch.utils.data as data
+import torchvision.transforms as transforms
 
 from utils import *
 
@@ -14,27 +14,33 @@ class MRDataset(data.Dataset):
         if not os.path.isdir(root):
             raise ValueError(f'f{root} is not found')
         
+        self.dtype = dtype
+        
         if dtype == 'train':
-            self.T1_filenames = sorted(glob(os.path.join(root, 'trainT1', '*.png')))
-            self.T2_filenames = sorted(glob(os.path.join(root, 'trainT2', '*.png')))
-            self.FLAIR_filenames = sorted(glob(os.path.join(root, 'trainS1', '*.png')))
-            self.DIR_filenames = sorted(glob(os.path.join(root, 'trainS2', '*.png')))
-            self.mask_filenames = sorted(glob(os.path.join(root, 'train_mask', '*.png')))
+            self.T1_filenames = sorted(glob(os.path.join(root, 'trainT1') + '/*/*.png'))
+            self.T2_filenames = sorted(glob(os.path.join(root, 'trainT2') + '/*/*.png'))
+            self.T1CE_filenames = sorted(glob(os.path.join(root, 'trainT1CE') + '/*/*.png'))
+            self.Flair_filenames = sorted(glob(os.path.join(root, 'trainFlair') + '/*/*.png'))
+            self.mask_filenames = sorted(glob(os.path.join(root, 'trainMask') + '/*/*.png'))
         elif dtype == 'test':
-            self.T1_filenames = sorted(glob(os.path.join(root, 'testT1', '*.png')))
-            self.T2_filenames = sorted(glob(os.path.join(root, 'testT2', '*.png')))
-            self.FLAIR_filenames = sorted(glob(os.path.join(root, 'testS1', '*.png')))
-            self.DIR_filenames = sorted(glob(os.path.join(root, 'testS2', '*.png')))
-            self.mask_filenames = sorted(glob(os.path.join(root, 'test_mask', '*.png')))
+            self.T1_filenames = sorted(glob(os.path.join(root, 'testT1') + '/*/*.png'))
+            self.T2_filenames = sorted(glob(os.path.join(root, 'testT2') + '/*/*.png'))
+            self.T1CE_filenames = sorted(glob(os.path.join(root, 'testT1CE') + '/*/*.png'))
+            self.Flair_filenames = sorted(glob(os.path.join(root, 'testFlair') + '/*/*.png'))
         else:
             raise ValueError(f'Unknwon dtype: {dtype}')
 
         # sanity check
         assert len(self.T1_filenames) != 0 and len(self.T1_filenames) == len(self.T2_filenames)
-        assert len(self.T1_filenames) == len(self.FLAIR_filenames) and len(self.T1_filenames) == len(self.FLAIR_filenames)
-        assert len(self.T1_filenames) == len(self.DIR_filenames) and len(self.T1_filenames) == len(self.mask_filenames)
+        assert len(self.T1_filenames) == len(self.T1CE_filenames) 
 
         self._size = len(self.T1_filenames)
+
+        # data transform
+        self.transform = transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Normalize(mean=(0.5, 0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5, 0.5))
+        ])
 
     def __len__(self):
         return self._size
@@ -45,18 +51,28 @@ class MRDataset(data.Dataset):
         else:
             T1 = read_image(self.T1_filenames[index])
             T2 = read_image(self.T2_filenames[index])
-            FLAIR = read_image(self.FLAIR_filenames[index])
-            DIR = read_image(self.DIR_filenames[index])
-            mask = read_mask(self.mask_filenames[index])
+            T1CE = read_image(self.T1CE_filenames[index])
+            Flair = read_image(self.Flair_filenames[index])
+            
+            if self.dtype == 'train':
+                mask = read_mask(self.mask_filenames[index])
+                # perform center crop
+                size = (196, 196)
+                T1, T2, T1CE, Flair, mask = center_crop(T1, size), center_crop(T2, size), center_crop(T1CE, size), center_crop(Flair, size), center_crop(mask, size)
+                mask = numpy2torch(mask)
 
-            T1, T2, FLAIR, DIR, mask = numpy2torch(T1), numpy2torch(T2), numpy2torch(FLAIR), numpy2torch(DIR), numpy2torch(mask)
-            real_A = torch.cat((T1, T2), dim=0)
-            real_B = torch.cat((FLAIR, DIR), dim=0)
-            # resize original image
-            # real_A = resize(real_A, (50, 50))
-            # real_B = resize(real_B, (50, 50))
-            # mask = resize(mask, (50, 50))
-            return real_A, real_B, mask
+            # perform transform
+            img = np.stack((T1, T2, T1CE, Flair), axis=-1)
+            aug_img = self.transform(img)
+            T1, T2, T1CE, Flair = aug_img[0], aug_img[1], aug_img[2], aug_img[3]
+            
+            real_A = torch.stack((T1, T1CE), axis=0)
+            real_B = torch.stack((T2, Flair), axis=0)
+
+            if self.dtype == 'train':
+                return real_A, real_B, mask
+            else:
+                return real_A, real_B
 
 class MRTrainDataset(MRDataset):
     def __init__(self, root):
@@ -65,4 +81,3 @@ class MRTrainDataset(MRDataset):
 class MRTestDataset(MRDataset):
     def __init__(self, root):
         super().__init__(root, dtype='test')
-    
