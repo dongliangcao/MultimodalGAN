@@ -19,6 +19,7 @@ if __name__=='__main__':
     parser.add_argument('--epochs', help='number of epochs', type=int, default=60)
     parser.add_argument('--mode', help='mode: train/test', default='train')
     parser.add_argument('--output_root', help='output root', default='output/')
+    parser.add_argument('--ssim', help='use ssim instead of l1', action='store_true')
     args = parser.parse_args()
 
     mode = args.mode
@@ -33,7 +34,8 @@ if __name__=='__main__':
         'verbose': True,
         'print_every_step': 10,
         'identity_learning': False,
-        'supervised_learning': True
+        'supervised_learning': True,
+        'ssim': args.ssim
     }
     if mode == 'train':
         # log file

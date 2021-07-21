@@ -20,3 +20,5 @@ python main.py --mode test
 --epochs: number of epochs to train
 
 --output_root: output root stores all test outputs
+
+--ssim: use ssim as reconstruction loss

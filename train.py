@@ -7,6 +7,11 @@ import torch.nn.functional as F
 
 from torch.utils.tensorboard import SummaryWriter
 
+try:
+    from .ssim import SSIM
+except:
+    from ssim import SSIM
+
 DECAY_EPOCH = 101
 DATE_TIME = time.strftime('%Y%m%d-%H%M%S', time.localtime())
 
@@ -18,6 +23,7 @@ def train(model, train_dataloader, config):
     print_every_step = config['print_every_step']
     identity_learning = config['identity_learning']
     supervised_learning = config['supervised_learning']
+    use_ssim = config['ssim']
 
     # log losses during training
     training_history = OrderedDict()
@@ -39,13 +45,14 @@ def train(model, train_dataloader, config):
     loss_weights_D = 0.5
 
     # cyclic loss weight A2B, cyclic loss weight B2A, cyclic loss with attention B2A, loss for discriminator
-    loss_G = [F.l1_loss, F.l1_loss, F.l1_loss, F.mse_loss, F.mse_loss]
+    reconst_loss = F.l1_loss if not use_ssim else SSIM(data_range=2.0, channel=2).to(device)
+    loss_G = [reconst_loss, reconst_loss, reconst_loss, F.mse_loss, F.mse_loss]
     loss_weights_G = [10.0, 8.0, 10.0, 1.0, 1.0]
     # supervised loss for paired input and target
     if supervised_learning:
-        loss_G.extend([F.l1_loss, F.l1_loss])
+        loss_G.extend([reconst_loss, reconst_loss])
         loss_weights_G.extend([10.0, 10.0])
-    # identity mapping will be done each time the iteration number is divisable with this number
+    # identity mapping will be done each time the iteration number is divisible with this number
     identity_mapping_modulus = 10
     loss_I = F.l1_loss
     loss_weights_I = 1.0

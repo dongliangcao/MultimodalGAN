@@ -256,7 +256,7 @@ class SSIM(torch.nn.Module):
         self.nonnegative_ssim = nonnegative_ssim
 
     def forward(self, X, Y):
-        return ssim(
+        return 1.0 - ssim(
             X,
             Y,
             data_range=self.data_range,
@@ -299,7 +299,7 @@ class MS_SSIM(torch.nn.Module):
         self.K = K
 
     def forward(self, X, Y):
-        return ms_ssim(
+        return 1.0 - ms_ssim(
             X,
             Y,
             data_range=self.data_range,
