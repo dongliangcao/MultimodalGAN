@@ -20,6 +20,7 @@ if __name__=='__main__':
     parser.add_argument('--mode', help='mode: train/test', default='train')
     parser.add_argument('--output_root', help='output root', default='output/')
     parser.add_argument('--ssim', help='use ssim instead of l1', action='store_true')
+    parser.add_argument('--batch_size', help='batch size', type=int, default=1)
     args = parser.parse_args()
 
     mode = args.mode
@@ -46,7 +47,7 @@ if __name__=='__main__':
             os.mkdir('./checkpoints/')
         # prepare data
         train_dataset = MRTrainDataset(root=data_root)
-        train_dataloader = DataLoader(train_dataset, batch_size=1, shuffle=True, num_workers=2, pin_memory=True)
+        train_dataloader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, num_workers=4, pin_memory=True)
         # prepare model
         model = CycleGAN().to(device)
         # start training
