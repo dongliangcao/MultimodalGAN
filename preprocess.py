@@ -63,7 +63,7 @@ if __name__ == '__main__':
 
             # save slices
             for i, ss in enumerate(range(np.shape(t1)[0])):
-                if np.sum(mask[ss]) > 0:
+                if np.sum(t1[ss] != 0) > 2000:
                     Image.fromarray(t1[ss]).save(os.path.join(save_dir_t1, folder, f'{i}.png'))
                     Image.fromarray(t2[ss]).save(os.path.join(save_dir_t2, folder, f'{i}.png'))
                     Image.fromarray(t1ce[ss]).save(os.path.join(save_dir_t1ce, folder, f'{i}.png'))
@@ -109,7 +109,7 @@ if __name__ == '__main__':
 
             # save slices
             for i, ss in enumerate(range(np.shape(t1)[0])):
-                if np.sum(t1[ss] != 0) > 3000:
+                if np.sum(t1[ss] != 0) > 2000:
                     Image.fromarray(t1[ss]).save(os.path.join(save_dir_t1, folder, f'{i}.png'))
                     Image.fromarray(t2[ss]).save(os.path.join(save_dir_t2, folder, f'{i}.png'))
                     Image.fromarray(t1ce[ss]).save(os.path.join(save_dir_t1ce, folder, f'{i}.png'))

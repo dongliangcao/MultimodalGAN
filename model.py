@@ -97,11 +97,14 @@ class Generator(nn.Module):
             nn.Tanh()
         )
 
-    def forward(self, img, mask):
+    def forward(self, img, mask=None):
         out = self.layer3(self.layer2(self.layer1(img)))
         out = self.residual_blocks(out)
         out = self.layer14(self.layer13(out))
-        out_attn = out * mask
+        if mask is not None:
+            out_attn = out * mask
+        else:
+            out_attn = out
         return out, out_attn
 
 class Discriminator(nn.Module):

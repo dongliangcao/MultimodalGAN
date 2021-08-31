@@ -26,7 +26,6 @@ def train(model, train_dataloader, config):
     use_ssim = config['ssim']
 
     # log losses during training
-    training_history = OrderedDict()
     logger = SummaryWriter(f'./logs/{DATE_TIME}/')
     DA_losses = []
     DB_losses = []
@@ -230,7 +229,7 @@ def update_lr(optimizer, decay):
                 g['lr'] -= decay
 
 def save_checkpoint(model, filename):
-    path = './checkpoints/'
+    path = os.path.join('./checkpoints/', DATE_TIME)
     if not os.path.isdir(path):
         os.mkdir(path)
 

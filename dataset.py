@@ -12,7 +12,7 @@ class MRDataset(data.Dataset):
     """
     def __init__(self, root, dtype='train'):
         if not os.path.isdir(root):
-            raise ValueError(f'f{root} is not found')
+            raise ValueError(f'{root} is not found')
         
         self.dtype = dtype
         
